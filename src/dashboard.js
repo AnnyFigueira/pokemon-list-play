@@ -1,10 +1,9 @@
 import {server, Page, React, ObjectID} from 'nullstack';
 
 export default class Dashboard extends Page {
-  
+
   state = {
-    lastNumber: 0,
-    pokemonList: [],
+    pokemons: []
   }
 
   @server
@@ -13,44 +12,22 @@ export default class Dashboard extends Page {
   }
 
   @server
-  async generateRandomPokemonNumber() {
-    let number = (Math.random() * (809-1) + 1).toFixed(0);
-    let newList = this.state.pokemonList;
-    newList.push(number);
-    this.setState({pokemonList: newList});
-    this.setState({lastNumber: number})
+  async generateRandomPokemon() {
+    const number = (Math.random() * (809-1) + 1).toFixed(0);
+    const response = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${number}`);
+    const data = await response.json();
+    this.setState({
+      pokemons: [...this.state.pokemons, {number, name: data.name}]
+    });
   }
 
-  async getPokemonName(pokemonNumber)
-  {
-    try{
-      const response = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokemonNumber}`);
-      return response.name
-    } catch(e) {
-      console.log(e);
-      return null
-    }
-  }
-
-  async renderPokemonCardList() {
-    return(
-      <>
-      {this.state.pokemonList.map(pokemonNumber => {return this.renderPokemonCard(pokemonNumber)})}
-      </>)
-  }
-
-  renderPokemonCard(pokemonNumber)
-  {
-    const formattedNumber = pokemonNumber < 100 ? 0+pokemonNumber : pokemonNumber;
-    return(
-      <div className="col-2 mb-4">
+  renderPokemonCard(pokemon) {
+    const formattedNumber = pokemon.number < 100 ? 0 + pokemon.number : pokemon.number;
+    return (
+      <div className="col-2 mb-4" key={pokemon.number}>
         <div className="card">
-          <img src={`https://www.serebii.net/sunmoon/pokemon/${formattedNumber}.png`} className="card-img-top" alt="..."></img>
-          <div className="card-body text-center">
-            {/* <span>
-              {this.getPokemonName(pokemonNumber)}
-            </span> */}
-          </div>
+          <img src={`https://www.serebii.net/sunmoon/pokemon/${formattedNumber}.png`} className="card-img-top" alt={pokemon.name} />
+          <div className="card-body text-center"> {pokemon.name} #{pokemon.number} </div>
         </div>
       </div>
     )
@@ -61,20 +38,17 @@ export default class Dashboard extends Page {
       <>
         <div className="container">
           <h1> Hello! </h1>
-          
-          <button className="btn my-2 mx-2" onClick={() => this.generateRandomPokemonNumber()}>
-            <i className="fas fa-redo-alt"></i>
+          <button className="btn my-2 mx-2" onClick={() => this.generateRandomPokemon()}>
+            <i className={`fas ${this.state.loading.generateRandomPokemon ? 'fa-spinner fa-pulse' : 'fa-redo-alt'}`}></i>
           </button>
-
           <button className="btn my-2 mx-2">
             <i className="far fa-save"></i>
           </button>
-
-          <p>Último Pokémon Gerado: {this.state.lastNumber} </p>
+          {this.state.pokemons.length > 0 &&
+            <p> Último Pokémon Gerado: {this.state.pokemons[this.state.pokemons.length - 1].number} </p>
+          }
           <div className="row">
-
-            {this.renderPokemonCardList()}
-
+            {this.state.pokemons.map(pokemon => this.renderPokemonCard(pokemon))}
           </div>
         </div>
       </>
